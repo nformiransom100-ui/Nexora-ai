@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover"/>
+<meta name="theme-color" content="#080808"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<title>Nova AI</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#080808;--surface:#111;--card:#181818;--border:#242424;--muted:#333;--text:#f0f0f0;--sub:#777;--accent:#7B5EA7;--accent2:#9B79C7;--glow:rgba(123,94,167,0.35);--red:#e05555;--green:#4ade80}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',system-ui,sans-serif;overscroll-behavior:none}
+#app{display:flex;flex-direction:column;height:100dvh;max-width:480px;margin:0 auto;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg);border-bottom:1px solid var(--border);z-index:10;flex-shrink:0}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-orb{width:28px;height:28px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;box-shadow:0 0 20px var(--glow)}
+.logo-orb svg{width:14px;height:14px;fill:white}
+.logo-name{font-size:15px;font-weight:700;color:var(--text)}
+.icon-btn{width:38px;height:38px;border-radius:10px;background:transparent;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--sub);transition:background .15s,color .15s}
+.icon-btn:active{background:var(--card);color:var(--text)}
+.icon-btn svg{width:18px;height:18px}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:40;opacity:0;pointer-events:none;transition:opacity .25s}
+.overlay.show{opacity:1;pointer-events:all}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:280px;background:var(--surface);border-right:1px solid var(--border);z-index:50;display:flex;flex-direction:column;transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1)}
+.sidebar.show{transform:translateX(0)}
+.sb-header{display:flex;align-items:center;justify-content:space-between;padding:18px 16px;border-bottom:1px solid var(--border)}
+.sb-new{margin:12px;padding:10px 14px;background:rgba(123,94,167,.12);border:1px solid rgba(123,94,167,.25);border-radius:12px;color:var(--accent2);font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:8px}
+.sb-chats{flex:1;overflow-y:auto;padding:8px}
+.sb-section{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub);padding:8px 10px 6px}
+.chat-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;transition:background .12s}
+.chat-item:active,.chat-item.active{background:var(--card)}
+.chat-item-text{font-size:13px;color:var(--sub);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1}
+.chat-item svg{width:14px;height:14px;flex-shrink:0;color:var(--muted)}
+.sb-nav{border-top:1px solid var(--border);padding:8px}
+.sb-nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;cursor:pointer;color:var(--sub);font-size:13px;transition:background .12s}
+.sb-nav-item:active{background:var(--card);color:var(--text)}
+.sb-nav-item svg{width:15px;height:15px}
+#home{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+#home.hidden{display:none}
+.hero{display:flex;flex-direction:column;align-items:center;padding:48px 24px 32px}
+.hero-orb{width:72px;height:72px;border-radius:22px;background:var(--accent);display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 0 60px var(--glow);animation:pulse 3s ease-in-out infinite}
+.hero-orb svg{width:32px;height:32px;fill:white}
+@keyframes pulse{0%,100%{box-shadow:0 0 40px var(--glow)}50%{box-shadow:0 0 80px var(--glow),0 0 140px rgba(123,94,167,.2)}}
+.hero-title{font-size:24px;font-weight:800;text-align:center;letter-spacing:-.5px;margin-bottom:8px}
+.hero-sub{font-size:13px;color:var(--sub);text-align:center}
+.quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 16px 24px}
+.quick-btn{display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:16px;border:1px solid var(--border);background:var(--card);cursor:pointer;text-align:left;transition:border-color .15s,transform .1s;font-family:inherit;color:var(--text)}
+.quick-btn:active{transform:scale(.97)}
+.quick-btn svg{width:16px;height:16px;flex-shrink:0}
+.quick-btn span{font-size:13px;font-weight:600}
+#chat{flex:1;display:none;flex-direction:column}
+#chat.active{display:flex}
+.chat-header{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);background:var(--bg);flex-shrink:0}
+.chat-title{flex:1;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-mode{font-size:10px;color:var(--accent2);font-weight:700;text-transform:uppercase}
+.messages{flex:1;overflow-y:auto;padding:12px 0 4px}
+.msg-row{display:flex;gap:10px;padding:8px 16px;animation:fi .2s ease-out}
+.msg-row.user{flex-direction:row-reverse}
+@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.avatar{width:28px;height:28px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:2px}
+.avatar.ai{background:var(--accent);box-shadow:0 0 12px var(--glow)}
+.avatar.user{background:var(--muted)}
+.avatar svg{width:13px;height:13px;fill:white}
+.bubble{max-width:82%;border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.65}
+.bubble.ai{background:var(--card);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text)}
+.bubble.user{background:var(--accent);border-top-right-radius:4px;color:white}
+.bubble-acts{display:flex;gap:4px;margin-top:6px;margin-left:38px}
+.b-act{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:transparent;border:none;font-family:inherit;font-size:11px;color:var(--sub);cursor:pointer;transition:background .12s,color .12s}
+.b-act:active{background:var(--card);color:var(--text)}
+.b-act svg{width:11px;height:11px}
+.typing{display:flex;gap:4px;padding:4px 0}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--sub);animation:bounce 1.2s ease-in-out infinite}
+.typing span:nth-child(2){animation-delay:.15s}
+.typing span:nth-child(3){animation-delay:.3s}
+@keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-5px)}}
+.code-block{background:#0d0d0d;border:1px solid var(--border);border-radius:10px;margin:8px 0;overflow:hidden}
+.code-hdr{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--surface);border-bottom:1px solid var(--border)}
+.code-lang{font-size:11px;font-family:monospace;color:var(--sub)}
+.code-copy{background:none;border:none;font-family:inherit;font-size:11px;color:var(--sub);cursor:pointer;display:flex;align-items:center;gap:4px;padding:2px 6px;border-radius:6px}
+.code-copy:active{background:var(--muted);color:var(--text)}
+pre{padding:12px;overflow-x:auto;font-size:12px;font-family:monospace;line-height:1.6;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.md-bold{font-weight:700;color:white}
+.md-h1{font-size:17px;font-weight:800;margin:8px 0 4px}
+.md-h2{font-size:15px;font-weight:700;margin:6px 0 4px}
+.md-li{display:flex;gap:6px;margin:2px 0}
+.md-li::before{content:"•";color:var(--accent2);flex-shrink:0}
+.md-code{background:var(--muted);padding:1px 5px;border-radius:4px;font-family:monospace;font-size:11px;color:var(--accent2)}
+.md-hr{border:none;border-top:1px solid var(--border);margin:8px 0}
+.inputbar{flex-shrink:0;padding:10px 12px;padding-bottom:max(10px,env(safe-area-inset-bottom));background:var(--bg);border-top:1px solid var(--border)}
+.inputbar-row{display:flex;align-items:flex-end;gap:8px}
+.plus-btn{width:40px;height:40px;flex-shrink:0;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--sub);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.plus-btn.open{background:var(--accent);border-color:var(--accent);color:white;transform:rotate(45deg)}
+.plus-btn svg{width:18px;height:18px}
+.input-wrap{flex:1;display:flex;align-items:flex-end;background:var(--card);border:1px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .15s}
+.input-wrap:focus-within{border-color:var(--muted)}
+textarea{flex:1;background:none;border:none;outline:none;font-family:inherit;font-size:14px;color:var(--text);padding:11px 14px;resize:none;max-height:120px;line-height:1.5}
+textarea::placeholder{color:var(--sub)}
+.send-btn{width:40px;height:40px;flex-shrink:0;border-radius:12px;border:none;background:var(--accent);color:white;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .1s}
+.send-btn:active{transform:scale(.92)}
+.send-btn:disabled{background:var(--muted);cursor:not-allowed}
+.send-btn svg{width:16px;height:16px}
+.stop-btn{background:var(--card);border:1px solid var(--border);color:var(--text)}
+.mic-btn{width:40px;height:40px;flex-shrink:0;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--sub);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s}
+.mic-btn.listening{background:rgba(224,85,85,.15);border-color:var(--red);color:var(--red)}
+.mic-btn svg{width:16px;height:16px}
+.disc{font-size:10px;color:var(--muted);text-align:center;margin-top:6px}
+.plus-menu{position:absolute;bottom:100%;left:0;margin-bottom:6px;width:220px;background:var(--surface);border:1px solid var(--border);border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.5);animation:su .18s ease-out;z-index:20}
+@keyframes su{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.pm-hdr{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border)}
+.pm-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--sub)}
+.pm-item{display:flex;align-items:center;gap:10px;padding:11px 14px;cursor:pointer;transition:background .12s;font-size:13px;font-weight:600;color:var(--text);background:none;border:none;width:100%;font-family:inherit;text-align:left}
+.pm-item:active{background:var(--card)}
+.pm-item svg{width:15px;height:15px}
+.voice-modal{position:fixed;inset:0;background:rgba(8,8,8,.97);z-index:60;display:none;flex-direction:column;align-items:center;justify-content:center}
+.voice-modal.show{display:flex;animation:fi .2s ease-out}
+.v-close{position:absolute;top:56px;right:20px;width:40px;height:40px;border-radius:50%;background:var(--card);border:1px solid var(--border);color:var(--sub);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.v-label{display:flex;align-items:center;gap:8px;margin-bottom:64px;font-size:15px;font-weight:700;color:var(--text)}
+.v-label svg{width:16px;height:16px;fill:var(--accent2)}
+.orb-wrap{position:relative;width:120px;height:120px;margin-bottom:48px;cursor:pointer}
+.orb-ring{position:absolute;inset:-20px;border-radius:50%;border:2px solid rgba(123,94,167,.2);opacity:0}
+.orb-ring2{position:absolute;inset:-40px;border-radius:50%;border:1px solid rgba(123,94,167,.1);opacity:0}
+.orb-ring.pulse{animation:rp 1.5s ease-out infinite}
+.orb-ring2.pulse{animation:rp 1.5s ease-out .4s infinite}
+@keyframes rp{0%{opacity:.6;transform:scale(.9)}100%{opacity:0;transform:scale(1.3)}}
+.orb{width:120px;height:120px;border-radius:50%;background:var(--card);border:2px solid var(--border);display:flex;align-items:center;justify-content:center;transition:all .3s}
+.orb.listening{background:var(--accent);border-color:var(--accent);box-shadow:0 0 60px var(--glow);transform:scale(1.08)}
+.orb.thinking{background:rgba(123,94,167,.6);animation:op2 .8s ease-in-out infinite}
+@keyframes op2{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.orb svg{width:36px;height:36px}
+.v-transcript{font-size:15px;color:var(--text);text-align:center;padding:0 32px;min-height:60px;line-height:1.6}
+.v-status{font-size:13px;color:var(--sub);text-align:center}
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--muted);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+<div class="topbar">
+  <button class="icon-btn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+  <div class="logo"><div class="logo-orb"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg></div><span class="logo-name">Nova AI</span></div>
+  <button class="icon-btn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></button>
+</div>
+<div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <div class="logo"><div class="logo-orb"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg></div><span class="logo-name">Nova AI</span></div>
+    <button class="icon-btn" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  </div>
+  <button class="sb-new" onclick="newChat();toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="16" height="16"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>New Chat</button>
+  <div class="sb-chats"><div class="sb-section">Recent</div><div id="chatList"></div></div>
+  <div class="sb-nav">
+    <div class="sb-nav-item" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>Images</div>
+    <div class="sb-nav-item" onclick="toggleSidebar()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Settings</div>
+  </div>
+</div>
+<div id="home">
+  <div class="hero">
+    <div class="hero-orb"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg></div>
+    <h1 class="hero-title">What can I help with?</h1>
+    <p class="hero-sub">Ask anything or pick a mode below</p>
+  </div>
+  <div class="quick-grid">
+    <button class="quick-btn" onclick="qa('image','Create an image of ')"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg><span>Create image</span></button>
+    <button class="quick-btn" onclick="qa('write','Help me write ')"><svg viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg><span>Help me write</span></button>
+    <button class="quick-btn" onclick="qa('analyze','Analyze: ')"><svg viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Analyze data</span></button>
+    <button class="quick-btn" onclick="qa('code','Write code to ')"><svg viewBox="0 0 24 24" fill="none" stroke="#fb923c" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg><span>Code</span></button>
+    <button class="quick-btn" onclick="qa('brainstorm','Brainstorm ideas for ')"><svg viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg><span>Brainstorm</span></button>
+    <button class="quick-btn" onclick="qa('advice','Give me advice on ')"><svg viewBox="0 0 24 24" fill="none" stroke="#f472b6" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span>Get advice</span></button>
+    <button class="quick-btn" onclick="qa('summarize','Summarize: ')"><svg viewBox="0 0 24 24" fill="none" stroke="#2dd4bf" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/></svg><span>Summarize</span></button>
+    <button class="quick-btn" onclick="qa('translate','Translate to ')"><svg viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10z"/></svg><span>Translate</span></button>
+  </div>
+</div>
+<div id="chat">
+  <div class="chat-header">
+    <button class="icon-btn" onclick="goHome()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+    <div style="flex:1;min-width:0"><div class="chat-title" id="chatTitle">Chat</div><div class="chat-mode" id="chatMode"></div></div>
+    <button class="icon-btn" onclick="if(confirm('Delete chat?')){S.chats=S.chats.filter(c=>c.id!==S.cid);rCL();goHome()}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg></button>
+  </div>
+  <div class="messages" id="messages"></div>
+</div>
+<div class="inputbar" id="inputbar">
+  <div style="position:relative">
+    <div class="plus-menu" id="plusMenu" style="display:none">
+      <div class="pm-hdr"><span class="pm-title">Attach</span><button class="icon-btn" onclick="cPM()" style="width:24px;height:24px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+      <button class="pm-item" onclick="hP('image')"><svg viewBox="0 0 24 24" fill="none" stroke="#a78bfa" stroke-width="2"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>Create Image</button>
+      <button class="pm-item" onclick="hP('search')"><svg viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>Web Search</button>
+      <button class="pm-item" onclick="hP('research')"><svg viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>Deep Research</button>
+    </div>
+  </div>
+  <div class="inputbar-row">
+    <button class="plus-btn" id="plusBtn" onclick="tPM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+    <div class="input-wrap"><textarea id="msgInput" rows="1" placeholder="Ask Nova AI" oninput="aR(this);uSB()" onkeydown="hK(event)"></textarea></div>
+    <button class="mic-btn" id="micBtn" onclick="tV()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg></button>
+    <button class="send-btn" id="sendBtn" onclick="hSend()" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button>
+  </div>
+  <p class="disc">Nova AI can make mistakes. Verify important info.</p>
+</div>
+<div class="voice-modal" id="voiceModal">
+  <button class="v-close" onclick="cVM()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+  <div class="v-label"><svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>Nova Voice</div>
+  <div class="orb-wrap" onclick="sOL()"><div class="orb-ring" id="oR"></div><div class="orb-ring2" id="oR2"></div><div class="orb" id="orb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="36" height="36" id="orbI"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg></div></div>
+  <div class="v-transcript" id="vT"></div>
+  <div class="v-status" id="vS">Tap to speak</div>
+</div>
+</div>
+<script>
+const S={view:'home',chats:[],cid:null,msgs:[],loading:false,mode:'chat',rec:null,listening:false,tRef:''};
+function uid(){return Math.random().toString(36).slice(2,10)+Date.now().toString(36)}
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function rMD(t){
+  const pts=[];const rx=/```(\w*)\n?([\s\S]*?)```/g;let l=0,m;
+  while((m=rx.exec(t))!==null){if(m.index>l)pts.push({type:'text',c:t.slice(l,m.index)});pts.push({type:'code',lang:m[1],c:m[2].trim()});l=m.index+m[0].length}
+  if(l<t.length)pts.push({type:'text',c:t.slice(l)});if(!pts.length)pts.push({type:'text',c:t});
+  return pts.map(p=>{
+    if(p.type==='code'){const id=uid();return`<div class="code-block"><div class="code-hdr"><span class="code-lang">${p.lang||'code'}</span><button class="code-copy" onclick="cC('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="11" height="11"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button></div><pre id="${id}">${esc(p.c)}</pre></div>`}
+    return p.c.split('\n').map(l=>{
+      if(!l.trim())return'<div style="height:4px"></div>';
+      if(l.startsWith('### '))return`<div class="md-h2">${rI(l.slice(4))}</div>`;
+      if(l.startsWith('## '))return`<div class="md-h1">${rI(l.slice(3))}</div>`;
+      if(l.startsWith('# '))return`<div class="md-h1" style="font-size:19px">${rI(l.slice(2))}</div>`;
+      if(l.match(/^[-•*] /))return`<div class="md-li">${rI(l.slice(2))}</div>`;
+      if(l==='---')return'<hr class="md-hr">';
+      return`<div style="margin-bottom:2px">${rI(l)}</div>`;
+    }).join('');
+  }).join('')
+}
+function rI(t){return t.replace(/\*\*(.+?)\*\*/g,'<span class="md-bold">$1</span>').replace(/`([^`]+)`/g,'<span class="md-code">$1</span>').replace(/\*(.+?)\*/g,'<em>$1</em>')}
+function cC(id){const p=document.getElementById(id);if(p)navigator.clipboard?.writeText(p.textContent).catch(()=>{})}
+function cMsg(id){const e=document.getElementById('m_'+id);if(e)navigator.clipboard?.writeText(e.dataset.raw||e.textContent).catch(()=>{})}
+function aR(el){el.style.height='auto';el.style.height=Math.min(el.scrollHeight,120)+'px'}
+function uSB(){const i=document.getElementById('msgInput'),b=document.getElementById('sendBtn');b.disabled=!i.value.trim()||S.loading}
+function stB(){document.getElementById('messages').scrollTop=99999}
+function goHome(){S.view='home';document.getElementById('home').classList.remove('hidden');document.getElementById('chat').classList.remove('active')}
+function openChat(id,title,mode){S.cid=id;S.mode=mode||'chat';S.view='chat';document.getElementById('home').classList.add('hidden');document.getElementById('chat').classList.add('active');document.getElementById('chatTitle').textContent=title||'Chat';document.getElementById('chatMode').textContent=mode&&mode!=='chat'?mode.toUpperCase()+' MODE':'';document.getElementById('messages').innerHTML='';S.msgs=[];cPM()}
+function newChat(){const id=uid();const c={id,title:'New Chat',mode:'chat'};S.chats.unshift(c);rCL();openChat(id,'New Chat','chat')}
+function qa(mode,prompt){const id=uid();S.chats.unshift({id,title:prompt.slice(0,36),mode});rCL();openChat(id,prompt.slice(0,36),mode);const i=document.getElementById('msgInput');i.value=prompt;i.focus();uSB();aR(i)}
+function rCL(){const el=document.getElementById('chatList');el.innerHTML=S.chats.map(c=>`<div class="chat-item ${c.id===S.cid?'active':''}" onclick="selC('${c.id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span class="chat-item-text">${esc(c.title)}</span></div>`).join('')||'<div style="padding:12px;font-size:12px;color:var(--sub)">No chats yet</div>'}
+function selC(id){const c=S.chats.find(x=>x.id===id);if(c){openChat(c.id,c.title,c.mode);toggleSidebar()}}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('show');document.getElementById('overlay').classList.toggle('show')}
+function tPM(){const m=document.getElementById('plusMenu'),b=document.getElementById('plusBtn'),o=m.style.display!=='none';m.style.display=o?'none':'block';b.classList.toggle('open',!o)}
+function cPM(){document.getElementById('plusMenu').style.display='none';document.getElementById('plusBtn').classList.remove('open')}
+function hP(t){cPM();if(S.view!=='chat')newChat();S.mode=t;document.getElementById('chatMode').textContent=t.toUpperCase()+' MODE';toast(t==='image'?'Image mode — describe your image':t==='search'?'Web search mode on':'Deep research mode on')}
+function addMsg(role,content,stream){
+  const id=uid();const msgs=document.getElementById('messages');const isU=role==='user';
+  const div=document.createElement('div');div.className='msg-row '+role;
+  div.innerHTML=`<div class="avatar ${role}">${isU?'<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>':'<svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>'}</div>
+  <div><div class="bubble ${role}" id="m_${id}" data-raw="${esc(content)}">${stream?'<div class="typing"><span></span><span></span><span></span></div>':isU?esc(content).replace(/\n/g,'<br>'):rMD(content)}</div>${!isU&&!stream?`<div class="bubble-acts"><button class="b-act" onclick="cMsg('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button><button class="b-act" onclick="regen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Retry</button></div>`:''}</div>`;
+  msgs.appendChild(div);stB();return id
+}
+function updMsg(id,content,done){
+  const el=document.getElementById('m_'+id);if(!el)return;el.dataset.raw=content;
+  if(done){el.innerHTML=rMD(content);const a=document.createElement('div');a.className='bubble-acts';a.innerHTML=`<button class="b-act" onclick="cMsg('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button><button class="b-act" onclick="regen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Retry</button>`;el.parentElement.appendChild(a)}
+  else el.innerHTML=rMD(content)+'<span style="display:inline-block;width:2px;height:14px;background:var(--accent);margin-left:2px;vertical-align:middle"></span>';
+  stB()
+}
+function hK(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();hSend()}}
+function hSend(){
+  const inp=document.getElementById('msgInput');const text=inp.value.trim();if(!text||S.loading)return;
+  if(S.view!=='chat'){const id=uid();S.chats.unshift({id,title:text.slice(0,40),mode:S.mode});rCL();openChat(id,text.slice(0,40),S.mode)}
+  inp.value='';inp.style.height='auto';uSB();addMsg('user',text);S.msgs.push({role:'user',content:text});sendAI(text)
+}
+function sendAI(txt){
+  S.loading=true;S.stop=false;
+  const sb=document.getElementById('sendBtn');sb.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>';sb.disabled=false;sb.classList.add('stop-btn');sb.onclick=()=>{S.stop=true};
+  const mid=addMsg('assistant','',true);let acc='';
+  fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:S.msgs,mode:S.mode,stream:true})})
+  .then(r=>{if(!r.ok||!r.body)throw new Error('no stream');const rd=r.body.getReader();const dc=new TextDecoder();
+    function pump(){if(S.stop){rd.cancel();fin(mid,acc);return}rd.read().then(({done,value})=>{if(done){fin(mid,acc);return}const c=dc.decode(value);c.split('\n').forEach(l=>{if(l.startsWith('data: ')){const d=l.slice(6);if(d==='[DONE]')return;try{const j=JSON.parse(d);const ch=j.choices?.[0]?.delta?.content||'';if(ch){acc+=ch;updMsg(mid,acc,false)}}catch{}}});pump()}).catch(()=>fin(mid,acc))}pump()})
+  .catch(()=>demoStream(mid,txt))
+}
+function demoStream(mid,txt){
+  const r=getDR(txt);const ws=r.split(' ');let i=0,acc='';
+  const iv=setInterval(()=>{if(S.stop||i>=ws.length){clearInterval(iv);fin(mid,acc);return}acc+=(i>0?' ':'')+ws[i++];updMsg(mid,acc,false)},22)
+}
+function getDR(t){
+  const l=t.toLowerCase();
+  if(l.includes('code')||l.includes('function'))return"Here's a clean example:\n\n```javascript\nfunction greet(name) {\n  return `Hello, ${name}! Welcome to Nova AI.`;\n}\n\nconsole.log(greet('World'));\n```\n\nThis function takes a **name** parameter and returns a greeting. Want me to write something more specific?";
+  if(l.includes('image')||l.includes('generate')||l.includes('create'))return"**Image Generation**\n\nTo generate real images, add your `FLUX_API_KEY` to Railway environment variables.\n\nYour prompt will be sent to **Flux AI** and the image will appear right here in chat.\n\nWant me to help craft a better prompt?";
+  if(l.includes('hello')||l.includes('hi')||l.includes('hey'))return"Hey! 👋 I'm **Nova AI**, your intelligent assistant.\n\nI can help you with:\n- Writing & editing\n- Code in any language\n- Research & analysis\n- Image generation\n- Translation\n\nWhat would you like to explore?";
+  return"**Nova AI** is ready to help!\n\nThis is **demo mode** — to connect real AI, add your `OPENROUTER_API_KEY` to Railway environment variables.\n\nThe full backend is already built and ready. Try the quick action buttons on the home screen!";
+}
+function fin(mid,content){
+  updMsg(mid,content||'(no response)',true);S.msgs.push({role:'assistant',content});S.loading=false;S.stop=false;
+  const sb=document.getElementById('sendBtn');sb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';sb.classList.remove('stop-btn');sb.onclick=hSend;uSB();
+  if(S.msgs.length===2){const c=S.chats.find(x=>x.id===S.cid);if(c){c.title=S.msgs[0].content.slice(0,40);rCL();document.getElementById('chatTitle').textContent=c.title}}
+}
+function regen(){const lu=[...S.msgs].reverse().find(m=>m.role==='user');if(!lu||S.loading)return;const msgs=document.getElementById('messages');const rows=msgs.querySelectorAll('.msg-row');if(rows.length>0)rows[rows.length-1].remove();S.msgs=S.msgs.slice(0,S.msgs.lastIndexOf(lu)+1);sendAI(lu.content)}
+function tV(){document.getElementById('voiceModal').classList.add('show')}
+function cVM(){S.rec?.stop();document.getElementById('voiceModal').classList.remove('show');S.listening=false;sOS('idle')}
+function sOS(s){const o=document.getElementById('orb'),r=document.getElementById('oR'),r2=document.getElementById('oR2');o.className='orb '+(s!=='idle'?s:'');r.className='orb-ring '+(s==='listening'?'pulse':'');r2.className='orb-ring2 '+(s==='listening'?'pulse':'');const ic=document.getElementById('orbI');if(s==='idle')ic.innerHTML='<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" stroke="currentColor" stroke-width="2" fill="none"/><path d="M19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" stroke-width="2" fill="none"/>';else ic.innerHTML='<path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z" fill="white"/>'}
+function sOL(){const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){document.getElementById('vS').textContent='Speech not supported';return}if(S.listening){S.rec?.stop();return}const r=new SR();r.lang='en-US';r.interimResults=true;S.tRef='';r.onstart=()=>{S.listening=true;sOS('listening');document.getElementById('vS').textContent='Listening…';document.getElementById('vT').textContent='';S.tRef=''};r.onresult=e=>{let interim='',final='';for(let i=e.resultIndex;i<e.results.length;i++){if(e.results[i].isFinal)final+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript}S.tRef=final||interim;document.getElementById('vT').textContent=S.tRef};r.onend=()=>{S.listening=false;const t=S.tRef.trim();if(t){sOS('thinking');document.getElementById('vS').textContent='Got it!';setTimeout(()=>{cVM();document.getElementById('msgInput').value=t;uSB();aR(document.getElementById('msgInput'));hSend()},500)}else{sOS('idle');document.getElementById('vS').textContent='Tap to speak'}};r.onerror=()=>{S.listening=false;sOS('idle');document.getElementById('vS').textContent='Tap to speak'};S.rec=r;r.start()}
+function toast(msg){const el=document.createElement('div');el.style.cssText='position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);color:var(--text);padding:10px 18px;border-radius:12px;font-size:13px;z-index:100;white-space:nowrap;box-shadow:0 4px 24px rgba(0,0,0,.4)';el.textContent=msg;document.body.appendChild(el);setTimeout(()=>el.remove(),2500)}
+rCL();
+</script>
+</body>
+</html>
