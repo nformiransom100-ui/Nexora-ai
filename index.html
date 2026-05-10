@@ -65,6 +65,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Syne',
 .bubble{max-width:82%;border-radius:16px;padding:12px 14px;font-size:13px;line-height:1.65}
 .bubble.ai{background:var(--card);border:1px solid var(--border);border-top-left-radius:4px;color:var(--text)}
 .bubble.user{background:var(--accent);border-top-right-radius:4px;color:white}
+.bubble.error{background:rgba(224,85,85,.1);border:1px solid rgba(224,85,85,.3);color:var(--red)}
 .bubble-acts{display:flex;gap:4px;margin-top:6px;margin-left:38px}
 .b-act{display:flex;align-items:center;gap:5px;padding:4px 8px;border-radius:8px;background:transparent;border:none;font-family:inherit;font-size:11px;color:var(--sub);cursor:pointer;transition:background .12s,color .12s}
 .b-act:active{background:var(--card);color:var(--text)}
@@ -242,11 +243,11 @@ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('sh
 function tPM(){const m=document.getElementById('plusMenu'),b=document.getElementById('plusBtn'),o=m.style.display!=='none';m.style.display=o?'none':'block';b.classList.toggle('open',!o)}
 function cPM(){document.getElementById('plusMenu').style.display='none';document.getElementById('plusBtn').classList.remove('open')}
 function hP(t){cPM();if(S.view!=='chat')newChat();S.mode=t;document.getElementById('chatMode').textContent=t.toUpperCase()+' MODE';toast(t==='image'?'Image mode — describe your image':t==='search'?'Web search mode on':'Deep research mode on')}
-function addMsg(role,content,stream){
+function addMsg(role,content,stream,isErr){
   const id=uid();const msgs=document.getElementById('messages');const isU=role==='user';
   const div=document.createElement('div');div.className='msg-row '+role;
   div.innerHTML=`<div class="avatar ${role}">${isU?'<svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>':'<svg viewBox="0 0 24 24"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6L12 2z"/></svg>'}</div>
-  <div><div class="bubble ${role}" id="m_${id}" data-raw="${esc(content)}">${stream?'<div class="typing"><span></span><span></span><span></span></div>':isU?esc(content).replace(/\n/g,'<br>'):rMD(content)}</div>${!isU&&!stream?`<div class="bubble-acts"><button class="b-act" onclick="cMsg('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button><button class="b-act" onclick="regen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Retry</button></div>`:''}</div>`;
+  <div><div class="bubble ${role}${isErr?' error':''}" id="m_${id}" data-raw="${esc(content)}">${stream?'<div class="typing"><span></span><span></span><span></span></div>':isU?esc(content).replace(/\n/g,'<br>'):rMD(content)}</div>${!isU&&!stream&&!isErr?`<div class="bubble-acts"><button class="b-act" onclick="cMsg('${id}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copy</button><button class="b-act" onclick="regen()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.5"/></svg>Retry</button></div>`:''}</div>`;
   msgs.appendChild(div);stB();return id
 }
 function updMsg(id,content,done){
@@ -266,20 +267,42 @@ function sendAI(txt){
   const sb=document.getElementById('sendBtn');sb.innerHTML='<svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><rect x="6" y="6" width="12" height="12" rx="1"/></svg>';sb.disabled=false;sb.classList.add('stop-btn');sb.onclick=()=>{S.stop=true};
   const mid=addMsg('assistant','',true);let acc='';
   fetch('/api/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({messages:S.msgs,mode:S.mode,stream:true})})
-  .then(r=>{if(!r.ok||!r.body)throw new Error('no stream');const rd=r.body.getReader();const dc=new TextDecoder();
-    function pump(){if(S.stop){rd.cancel();fin(mid,acc);return}rd.read().then(({done,value})=>{if(done){fin(mid,acc);return}const c=dc.decode(value);c.split('\n').forEach(l=>{if(l.startsWith('data: ')){const d=l.slice(6);if(d==='[DONE]')return;try{const j=JSON.parse(d);const ch=j.choices?.[0]?.delta?.content||'';if(ch){acc+=ch;updMsg(mid,acc,false)}}catch{}}});pump()}).catch(()=>fin(mid,acc))}pump()})
-  .catch(()=>demoStream(mid,txt))
+  .then(async r=>{
+    if(!r.ok){
+      let errMsg='Server error';
+      try{const j=await r.json();errMsg=j.error||errMsg}catch{}
+      finErr(mid,errMsg);return;
+    }
+    if(!r.body){finErr(mid,'No response stream from server');return}
+    const rd=r.body.getReader();const dc=new TextDecoder();
+    function pump(){
+      if(S.stop){rd.cancel();fin(mid,acc);return}
+      rd.read().then(({done,value})=>{
+        if(done){fin(mid,acc);return}
+        const c=dc.decode(value);
+        c.split('\n').forEach(l=>{
+          if(l.startsWith('data: ')){
+            const d=l.slice(6);
+            if(d==='[DONE]')return;
+            try{const j=JSON.parse(d);const ch=j.choices?.[0]?.delta?.content||'';if(ch){acc+=ch;updMsg(mid,acc,false)}}catch{}
+          }
+        });
+        pump()
+      }).catch(e=>finErr(mid,'Stream error: '+e.message))
+    }
+    pump()
+  })
+  .catch(e=>finErr(mid,'Could not reach server: '+e.message))
 }
-function demoStream(mid,txt){
-  const r=getDR(txt);const ws=r.split(' ');let i=0,acc='';
-  const iv=setInterval(()=>{if(S.stop||i>=ws.length){clearInterval(iv);fin(mid,acc);return}acc+=(i>0?' ':'')+ws[i++];updMsg(mid,acc,false)},22)
-}
-function getDR(t){
-  const l=t.toLowerCase();
-  if(l.includes('code')||l.includes('function'))return"Here's a clean example:\n\n```javascript\nfunction greet(name) {\n  return `Hello, ${name}! Welcome to Nova AI.`;\n}\n\nconsole.log(greet('World'));\n```\n\nThis function takes a **name** parameter and returns a greeting. Want me to write something more specific?";
-  if(l.includes('image')||l.includes('generate')||l.includes('create'))return"**Image Generation**\n\nTo generate real images, add your `FLUX_API_KEY` to Railway environment variables.\n\nYour prompt will be sent to **Flux AI** and the image will appear right here in chat.\n\nWant me to help craft a better prompt?";
-  if(l.includes('hello')||l.includes('hi')||l.includes('hey'))return"Hey! 👋 I'm **Nova AI**, your intelligent assistant.\n\nI can help you with:\n- Writing & editing\n- Code in any language\n- Research & analysis\n- Image generation\n- Translation\n\nWhat would you like to explore?";
-  return"**Nova AI** is ready to help!\n\nThis is **demo mode** — to connect real AI, add your `OPENROUTER_API_KEY` to Railway environment variables.\n\nThe full backend is already built and ready. Try the quick action buttons on the home screen!";
+function finErr(mid,msg){
+  const el=document.getElementById('m_'+id);
+  // Remove typing bubble and show error
+  addMsg('assistant','⚠️ '+msg,false,true);
+  // Remove the typing placeholder if still there
+  const placeholder=document.getElementById('m_'+mid);
+  if(placeholder){placeholder.closest('.msg-row')?.remove()}
+  S.loading=false;S.stop=false;
+  const sb=document.getElementById('sendBtn');sb.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>';sb.classList.remove('stop-btn');sb.onclick=hSend;uSB();
 }
 function fin(mid,content){
   updMsg(mid,content||'(no response)',true);S.msgs.push({role:'assistant',content});S.loading=false;S.stop=false;
